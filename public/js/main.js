@@ -9,7 +9,7 @@ var Game = (function() {
 	var lastUpdate;
 	var start = new Date().getTime();
 	var particles = [];
-	var updatesPerSecond = 20;
+	var updatesPerSecond = 10;
     var stars = [];
     var universeSize = 200;
     var centerPosition = new Vector(universeSize / 2, universeSize / 2);

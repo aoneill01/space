@@ -25,7 +25,7 @@ function createGame() {
 	var asteroids = [];
 	// Array of all the bullets
 	var bullets = [];
-	var updatesPerSecond = 20;
+	var updatesPerSecond = 10;
 	// Number of discrete physics calculations per update
 	var stepsPerUpdate = 2;
 	// Maximum speed for a ship
@@ -59,7 +59,7 @@ function createGame() {
                     p: ship.p.copy(),
                     pp: ship.pp.copy(),
                     v: vectorForAngle(ship.a, 8 / stepsPerUpdate).iadd(ship.v),
-					l: 5 * updatesPerSecond, 
+					l: 5 * updatesPerSecond * stepsPerUpdate, 
 					sid: ship.id
 				});
 				// Reset the shot counter
