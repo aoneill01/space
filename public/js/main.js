@@ -1,95 +1,5 @@
 "use strict";
 
-// http://codeflow.org/entries/2010/aug/28/integration-by-example-euler-vs-verlet-vs-runge-kutta/helper.js 
-var Vec = function(x, y){
-    this.x = x;
-    this.y = y;
-}
-
-function vectorForAngle(angle, magnitude) {
-    return new Vec(magnitude * Math.cos(angle), -magnitude * Math.sin(angle));
-}
-
-Vec.prototype = {
-    isub: function(other){
-        this.x -= other.x;
-        this.y -= other.y;
-        return this;
-    },
-    sub: function(other){
-        return new Vec(
-            this.x - other.x,
-            this.y - other.y
-        );
-    },
-    iadd: function(other){
-        this.x += other.x;
-        this.y += other.y;
-        return this;
-    },
-    add: function(other){
-        return new Vec(
-            this.x + other.x,
-            this.y + other.y
-        );
-    },
-
-    imul: function(scalar){
-        this.x *= scalar;
-        this.y *= scalar;
-        return this;
-    },
-    mul: function(scalar){
-        return new Vec(
-            this.x * scalar,
-            this.y * scalar
-        )
-    },
-    idiv: function(scalar){
-        this.x /= scalar;
-        this.y /= scalar;
-        return this;
-    },
-    div: function(scalar){
-        return new Vec(
-            this.x / scalar,
-            this.y / scalar
-        )
-    },
-
-    normalized: function(){
-        var x=this.x, y=this.y;
-        var length = Math.sqrt(x*x + y*y)
-        return new Vec(x/length, y/length);
-    },
-    normalize: function(){
-        var x=this.x, y=this.y;
-        var length = Math.sqrt(x*x + y*y)
-        this.x = x/length;
-        this.y = y/length;
-        return this;
-    },
-
-    length: function(){
-        return Math.sqrt(this.x*this.x + this.y*this.y);
-    },
-
-    distance: function(other){
-        var x = this.x - other.x;
-        var y = this.y - other.y;
-        return Math.sqrt(x*x + y*y);
-    },
-
-    copy: function(){
-        return new Vec(this.x, this.y);
-    },
-    
-    iset: function(other) {
-        this.x = other.x;
-        this.y = other.y;
-    }
-}
-
 var Game = (function() {
 	var context;
 	var ship;
@@ -99,14 +9,17 @@ var Game = (function() {
 	var lastUpdate;
 	var start = new Date().getTime();
 	var particles = [];
-	var updatesPerSecond = 10;
+	var updatesPerSecond = 20;
     var stars = [];
     var universeSize = 200;
-    var centerPosition = new Vec(universeSize / 2, universeSize / 2);
+    var centerPosition = new Vector(universeSize / 2, universeSize / 2);
 	var id;
 	var randomList = [];
 	var zoom = 1;
 	
+	/**
+	Initializes the game.
+	**/
 	function initialize(socket) {
 		context = document.getElementById("viewport").getContext("2d");
 		window.onEachFrame(draw);
@@ -114,13 +27,16 @@ var Game = (function() {
 		socket.on('up', update);
 		bindKeys(socket);
         for (var i = 0; i < 100; i++) {
-            stars.push(new Vec(25 * Math.random(), 25 * Math.random()));
+            stars.push(new Vector(25 * Math.random(), 25 * Math.random()));
         }
 		for (var i = 0; i < 101; i++) {
 			randomList[i] = Math.random();
 		}
 	}
 	
+	/**
+	Attaches listeners for keypresses.
+	**/
 	function bindKeys(socket) {
 		var left = false;
 		var right = false;
@@ -156,6 +72,9 @@ var Game = (function() {
 		});
 	}
 
+	/**
+	Draws the scene.
+	**/
 	function draw() {
 		var width = context.canvas.width;
 		var height = context.canvas.height;
@@ -167,8 +86,8 @@ var Game = (function() {
 		context.fillRect(0, 0, width, height);
 		
 		if (ship) {
-            var previousPosition = new Vec(ship.pp.x, ship.pp.y);
-            var currentPosition = new Vec(ship.p.x, ship.p.y);
+            var previousPosition = new Vector(ship.pp.x, ship.pp.y);
+            var currentPosition = new Vector(ship.p.x, ship.p.y);
             var shipPosition = previousPosition.add(currentPosition.sub(previousPosition).mul(interpolation));
 
             drawStars(shipPosition, factor);
@@ -200,8 +119,8 @@ var Game = (function() {
         context.fillStyle = 'black';
         context.lineWidth = 1;
         
-        var previousPosition = new Vec(ship.pp.x, ship.pp.y);
-        var currentPosition = new Vec(ship.p.x, ship.p.y);
+        var previousPosition = new Vector(ship.pp.x, ship.pp.y);
+        var currentPosition = new Vector(ship.p.x, ship.p.y);
         var shipPosition = previousPosition.add(currentPosition.sub(previousPosition).mul(interpolation));
 		var a = ship.oa + interpolation * (ship.a - ship.oa);
         
@@ -234,8 +153,7 @@ var Game = (function() {
             translated = translatedPoint(particlePoint, mainShipPosition);
 			
 			context.fillStyle = 'hsla(' + h + ', 100%, ' + l + '%, ' + a + ')';
-            //context.fillRect(factor * (translated.x - radius), factor * (translated.y - radius), factor * radius, factor * radius);
-			context.beginPath();
+            context.beginPath();
             context.arc(factor * translated.x, factor * translated.y, factor * radius, 0, 2 * Math.PI, true);
             context.fill();
 		}
@@ -254,8 +172,8 @@ var Game = (function() {
 			
 			if (!isVisible(asteroid, mainShipPosition)) continue;
 			
-			var previousPosition = new Vec(asteroid.pp.x, asteroid.pp.y);
-			var currentPosition = new Vec(asteroid.p.x, asteroid.p.y);
+			var previousPosition = new Vector(asteroid.pp.x, asteroid.pp.y);
+			var currentPosition = new Vector(asteroid.p.x, asteroid.p.y);
 			var shipPosition = previousPosition.add(currentPosition.sub(previousPosition).mul(interpolation));
 			var rotation = 2 * Math.PI * (random(a, 1) * 2 - 1) * ((now - start) / 5000);
 			var translated = translatedPoint(shipPosition, mainShipPosition);
@@ -286,8 +204,8 @@ var Game = (function() {
 		for (var i in bullets) {
 			var bullet = bullets[i];
 			if (!isVisible(bullet, mainShipPosition)) continue;
-			var previousPosition = new Vec(bullet.pp.x, bullet.pp.y);
-			var currentPosition = new Vec(bullet.p.x, bullet.p.y);
+			var previousPosition = new Vector(bullet.pp.x, bullet.pp.y);
+			var currentPosition = new Vector(bullet.p.x, bullet.p.y);
 			var position = previousPosition.add(currentPosition.sub(previousPosition).mul(interpolation));
 			var translated = translatedPoint(position, mainShipPosition);
 			context.fillRect(factor * translated.x, factor * translated.y, Math.ceil(.04 * factor), Math.ceil(.04 * factor));
@@ -374,7 +292,7 @@ var Game = (function() {
 	}
     
     function translatedPoint(point, mainShipPosition) {
-        return new Vec(point.x - mainShipPosition.x + 8 * zoom, point.y - mainShipPosition.y + 4.5 * zoom);
+        return new Vector(point.x - mainShipPosition.x + 8 * zoom, point.y - mainShipPosition.y + 4.5 * zoom);
     }
 	
 	function xWrap(x) {
@@ -442,11 +360,6 @@ $(document).ready(function () {
 	
 	var socket = io.connect('//');
 	Game.initialize(socket);
-	
-	$("#qr").qrcode({
-		text: location.protocol + "//" + location.host + "/phone.html",
-		color: '#fff'
-	});
 	
 	function resizeCanvas() {
 		var viewportWidth = $(window).width();
