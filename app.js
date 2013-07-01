@@ -27,7 +27,7 @@ function createGame() {
 	var bullets = [];
 	var updatesPerSecond = 10;
 	// Number of discrete physics calculations per update
-	var stepsPerUpdate = 2;
+	var stepsPerUpdate = 4;
 	// Maximum speed for a ship
 	var maxSpeed = 50;
 	// Width and height of space
@@ -37,9 +37,9 @@ function createGame() {
 	// Center of space and location of sun
     var center = new Vector(universeSize / 2, universeSize / 2);
 	// Change in time per update
-	var dt = 1 / updatesPerSecond;
+	var dt = 1 / (updatesPerSecond * stepsPerUpdate);
 	// Constant for sun gravity
-    var G = 1000 / stepsPerUpdate;
+    var G = 1000;
 	
 	/**
 	Periodic update of all objects.
@@ -58,7 +58,7 @@ function createGame() {
 				bullets.unshift({
                     p: ship.p.copy(),
                     pp: ship.pp.copy(),
-                    v: vectorForAngle(ship.a, 8 / stepsPerUpdate).iadd(ship.v),
+                    v: vectorForAngle(ship.a, 10).iadd(ship.v),
 					l: 5 * updatesPerSecond * stepsPerUpdate, 
 					sid: ship.id
 				});
@@ -96,7 +96,7 @@ function createGame() {
             ship.a += ship.pturn == null ? ship.turn : ship.pturn;
             ship.pturn = null;
 			
-			updatePosition(ship, ship.acc ? vectorForAngle(ship.a, 5 / stepsPerUpdate) : new Vector(0, 0), maxSpeed);
+			updatePosition(ship, ship.acc ? vectorForAngle(ship.a, 10) : new Vector(0, 0), maxSpeed);
    		}
 		
 		// Update the bullets
@@ -160,6 +160,9 @@ function createGame() {
 					removeBullet = true;
 					respawn(ship);
 				}
+			}
+			if (collision(bullet.pp, 0, center, 10)) {
+				removeBullet = true;
 			}
 			if (removeBullet) {
 				bullets.splice(i, 1);
