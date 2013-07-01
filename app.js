@@ -89,6 +89,9 @@ function createGame() {
 	}
 	
 	function updateStep() {
+		// Check for collisions
+		checkForCollisions();
+		
 		// Update the ships
 		for (var s in ships) {
 			var ship = ships[s];
@@ -114,10 +117,7 @@ function createGame() {
 		// Update the asteroids
 		for (var i in asteroids) {
 			updatePosition(asteroids[i]);
-		}
-		
-		// Check for collisions
-		checkForCollisions()		
+		}	
 	}
 	
 	function updatePosition(object, additionalAcceleration, maxSpeed) {
@@ -150,18 +150,18 @@ function createGame() {
 			var removeBullet = false;
 			for (var j in asteroids) {
 				var asteroid = asteroids[j];
-				if (collision(bullet.pp, 0, asteroid.pp, asteroid.r)) {
+				if (collision(bullet.p, 0, asteroid.p, asteroid.r)) {
 					removeBullet = true;
 				}
 			}
 			for (var j in ships) {
 				var ship = ships[j];
-				if (bullet.sid != ship.id && collision(bullet.pp, 0, ship.pp, .4)) {
+				if (bullet.sid != ship.id && collision(bullet.p, 0, ship.p, .4)) {
 					removeBullet = true;
 					respawn(ship);
 				}
 			}
-			if (collision(bullet.pp, 0, center, 10)) {
+			if (collision(bullet.p, 0, center, 10)) {
 				removeBullet = true;
 			}
 			if (removeBullet) {
@@ -174,11 +174,11 @@ function createGame() {
 			var ship = ships[i];
 			for (var j in asteroids) {
 				var asteroid = asteroids[j];
-				if (collision(ship.pp, .4, asteroid.pp, asteroid.r)) {
+				if (collision(ship.p, .4, asteroid.p, asteroid.r)) {
 					respawn(ship);
 				}
 			}
-			if (collision(ship.pp, .4, center, 10)) {
+			if (collision(ship.p, .4, center, 10)) {
 				respawn(ship);
 			}
 		}
