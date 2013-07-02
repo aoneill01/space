@@ -39,7 +39,7 @@ function createGame() {
 	// Change in time per update
 	var dt = 1 / (updatesPerSecond * stepsPerUpdate);
 	// Constant for sun gravity
-    var G = 1000;
+    var G = 700;
 	
 	/**
 	Periodic update of all objects.
@@ -58,7 +58,7 @@ function createGame() {
 				bullets.unshift({
                     p: ship.p.copy(),
                     pp: ship.pp.copy(),
-                    v: vectorForAngle(ship.a, 10).iadd(ship.v),
+                    v: vectorForAngle(ship.a, 7).iadd(ship.v),
 					l: 5 * updatesPerSecond * stepsPerUpdate, 
 					sid: ship.id
 				});
@@ -99,7 +99,7 @@ function createGame() {
             ship.a += ship.pturn == null ? ship.turn : ship.pturn;
             ship.pturn = null;
 			
-			updatePosition(ship, ship.acc ? vectorForAngle(ship.a, 10) : new Vector(0, 0), maxSpeed);
+			updatePosition(ship, ship.acc ? vectorForAngle(ship.a, 5) : new Vector(0, 0), maxSpeed);
    		}
 		
 		// Update the bullets
@@ -148,10 +148,12 @@ function createGame() {
 		for (var i = bullets.length - 1; i >= 0; i--) {
 			var bullet = bullets[i];
 			var removeBullet = false;
+            var splitAsteroid = null;
 			for (var j in asteroids) {
 				var asteroid = asteroids[j];
 				if (collision(bullet.p, 0, asteroid.p, asteroid.r)) {
 					removeBullet = true;
+                    splitAsteroid = j;
 				}
 			}
 			for (var j in ships) {
@@ -167,6 +169,19 @@ function createGame() {
 			if (removeBullet) {
 				bullets.splice(i, 1);
 			}
+            if (splitAsteroid) {
+                var asteroid = asteroids[splitAsteroid];
+                var v = vectorForAngle(Math.random()*2*Math.PI, Math.random());
+                asteroids.push({
+                    p: asteroid.p.copy(),
+                    pp: asteroid.pp.copy(),
+                    v: asteroid.v.add(v),
+                    r: asteroid.r * (2/3)
+                });
+                v = vectorForAngle(Math.random()*2*Math.PI, Math.random());
+                asteroid.v = asteroid.v.add(v);
+                asteroid.r = asteroid.r * (2/3);
+            }
 		}
 		
 		// Check for ships running into things
@@ -252,7 +267,7 @@ function createGame() {
 				socket.emit('id', ship.id);
 				socket.on('dir', function (data) {
 					ship.pturn = ship.turn;
-					ship.turn = .75 * (2 * Math.PI) * data * (1 / (updatesPerSecond * stepsPerUpdate));
+					ship.turn = .5 * (2 * Math.PI) * data * (1 / (updatesPerSecond * stepsPerUpdate));
 				});
 				socket.on('acc', function (data) {
 					ship.acc = data;

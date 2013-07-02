@@ -15,7 +15,7 @@ var Game = (function() {
     var centerPosition = new Vector(universeSize / 2, universeSize / 2);
 	var id;
 	var randomList = [];
-	var zoom = 1;
+	var zoom = 2;
 	
 	/**
 	Initializes the game.
