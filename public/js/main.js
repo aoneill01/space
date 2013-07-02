@@ -220,11 +220,13 @@ var Game = (function() {
         for (var i in stars) {
             var translated = translatedPoint(stars[i], mainShipPosition.div(4));
             context.fillRect(factor * xWrap(translated.x), factor * yWrap(translated.y), Math.ceil(.02 * factor), Math.ceil(.02 * factor));
+            context.fillRect(factor * (xWrap(translated.x) + 25), factor * yWrap(translated.y), Math.ceil(.02 * factor), Math.ceil(.02 * factor));
         }
 		context.fillStyle = '#333';
 		for (var i in stars) {
             var translated = translatedPoint(stars[i], mainShipPosition.div(8));
             context.fillRect(factor * xWrap(translated.x), factor * yWrap(translated.y), Math.ceil(.02 * factor), Math.ceil(.02 * factor));
+            context.fillRect(factor * (xWrap(translated.x) + 25), factor * yWrap(translated.y), Math.ceil(.02 * factor), Math.ceil(.02 * factor));
         }
         context.restore();
     }

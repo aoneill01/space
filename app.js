@@ -16,7 +16,7 @@ app.use(express.static(__dirname + '/public'));
 // Initialize the game
 game.initialize(io);
 
-server.listen(8888);
+server.listen(8080);
 
 function createGame() {
 	// Array of all the ships
