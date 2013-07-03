@@ -85,11 +85,15 @@ var Game = (function() {
 		context.fillStyle = 'black';
 		context.fillRect(0, 0, width, height);
 		
+		if (id) {
+			ship = ships[id];
+		}
+		
 		if (ship) {
-            var previousPosition = new Vector(ship.pp.x, ship.pp.y);
-            var currentPosition = new Vector(ship.p.x, ship.p.y);
+		    var previousPosition = new Vector(ship.px, ship.py);
+            var currentPosition = new Vector(ship.x, ship.y);
             var shipPosition = previousPosition.add(currentPosition.sub(previousPosition).mul(interpolation));
-
+			
             drawStars(shipPosition, factor);
 
 			drawBullets(shipPosition, interpolation, factor);
@@ -119,10 +123,10 @@ var Game = (function() {
         context.fillStyle = 'black';
         context.lineWidth = 1;
         
-        var previousPosition = new Vector(ship.pp.x, ship.pp.y);
-        var currentPosition = new Vector(ship.p.x, ship.p.y);
+        var previousPosition = new Vector(ship.px, ship.py);
+        var currentPosition = new Vector(ship.x, ship.y);
         var shipPosition = previousPosition.add(currentPosition.sub(previousPosition).mul(interpolation));
-		var a = ship.oa + interpolation * (ship.a - ship.oa);
+		var a = ship.pa + interpolation * (ship.a - ship.pa);
         
         var translated = translatedPoint(shipPosition, mainShipPosition);
 		
@@ -172,8 +176,8 @@ var Game = (function() {
 			
 			if (!isVisible(asteroid, mainShipPosition)) continue;
 			
-			var previousPosition = new Vector(asteroid.pp.x, asteroid.pp.y);
-			var currentPosition = new Vector(asteroid.p.x, asteroid.p.y);
+			var previousPosition = new Vector(asteroid.px, asteroid.py);
+			var currentPosition = new Vector(asteroid.x, asteroid.y);
 			var shipPosition = previousPosition.add(currentPosition.sub(previousPosition).mul(interpolation));
 			var rotation = 2 * Math.PI * (random(a, 1) * 2 - 1) * ((now - start) / 5000);
 			var translated = translatedPoint(shipPosition, mainShipPosition);
@@ -204,8 +208,8 @@ var Game = (function() {
 		for (var i in bullets) {
 			var bullet = bullets[i];
 			if (!isVisible(bullet, mainShipPosition)) continue;
-			var previousPosition = new Vector(bullet.pp.x, bullet.pp.y);
-			var currentPosition = new Vector(bullet.p.x, bullet.p.y);
+			var previousPosition = new Vector(bullet.px, bullet.py);
+			var currentPosition = new Vector(bullet.x, bullet.y);
 			var position = previousPosition.add(currentPosition.sub(previousPosition).mul(interpolation));
 			var translated = translatedPoint(position, mainShipPosition);
 			context.fillRect(factor * translated.x, factor * translated.y, Math.ceil(.04 * factor), Math.ceil(.04 * factor));
@@ -262,8 +266,8 @@ var Game = (function() {
 		for (var i in asteroids) {
 			var asteroid = asteroids[i];
 			context.fillStyle = 'blue';
-			context.fillRect(factor * (14 + (2 * (asteroid.p.x / universeSize))), 
-				factor * (7 + (2 * (asteroid.p.y / universeSize))), 
+			context.fillRect(factor * (14 + (2 * (asteroid.x / universeSize))), 
+				factor * (7 + (2 * (asteroid.y / universeSize))), 
 				Math.ceil(.02 * factor), 
 				Math.ceil(.02 * factor));
 		}
@@ -271,8 +275,8 @@ var Game = (function() {
 		for (var i in ships) {
 			var ship = ships[i];
 			context.fillStyle = ship.id == id ? 'white' : 'red';
-			context.fillRect(factor * (14 + (2 * (ship.p.x / universeSize))), 
-				factor * (7 + (2 * (ship.p.y / universeSize))), 
+			context.fillRect(factor * (14 + (2 * (ship.x / universeSize))), 
+				factor * (7 + (2 * (ship.y / universeSize))), 
 				Math.ceil(.02 * factor), 
 				Math.ceil(.02 * factor));
 		}
@@ -281,8 +285,8 @@ var Game = (function() {
 	}
 	
 	function isVisible(object, mainShipPosition) {
-		return Math.abs(object.p.x - mainShipPosition.x) < 17 && 
-			Math.abs(object.p.y - mainShipPosition.y) < 10;
+		return Math.abs(object.x - mainShipPosition.x) < 17 && 
+			Math.abs(object.y - mainShipPosition.y) < 10;
 	}
 	
 	function random(seed, index) {
@@ -310,15 +314,63 @@ var Game = (function() {
 	}
     
 	function update(data) {
-		ships = data.ships;
-		asteroids = data.asteroids;
-		bullets = data.bullets;
-		for (var i in ships) {
-			if (ships[i].id == id) {
-				ship = ships[i];
-				break;
-			}	
+		for (var i in data.ships) {
+			var ship = data.ships[i];
+			if (!ships[ship.id]) {
+				ships[ship.id] = {
+					x: new Number(ship.x),
+					y: new Number(ship.y),
+					a: ship.a,
+					px: null,
+					py: null,
+					pa: null
+				}
+			}
+			var updateShip = ships[ship.id];
+			updateShip.px = updateShip.x;
+			updateShip.py = updateShip.y;
+			updateShip.pa = updateShip.a;
+			updateShip.x = new Number(ship.x);
+			updateShip.y = new Number(ship.y);
+			updateShip.a = new Number(ship.a);
+			updateShip.acc = ship.acc;
 		}
+		
+		for (var i in data.asteroids) {
+			var asteroid = data.asteroids[i];
+			if (!asteroids[asteroid.id]) {
+				asteroids[asteroid.id] = {
+					x: new Number(asteroid.x),
+					y: new Number(asteroid.y),
+					r: new Number(asteroid.r),
+					px: null,
+					py: null
+				}
+			}
+			var updateAsteroid = asteroids[asteroid.id];
+			updateAsteroid.px = updateAsteroid.x;
+			updateAsteroid.py = updateAsteroid.y;
+			updateAsteroid.x = new Number(asteroid.x);
+			updateAsteroid.y = new Number(asteroid.y);
+		}
+		
+		for (var i in data.bullets) {
+			var bullet = data.bullets[i];
+			if (!bullets[bullet.id]) {
+				bullets[bullet.id] = {
+					x: new Number(bullet.x),
+					y: new Number(bullet.y),
+					px: null,
+					py: null
+				}
+			}
+			var updateBullet = bullets[bullet.id];
+			updateBullet.px = updateBullet.x;
+			updateBullet.py = updateBullet.y;
+			updateBullet.x = new Number(bullet.x);
+			updateBullet.y = new Number(bullet.y);
+		}
+		
 		lastUpdate = new Date().getTime();
 		updateParticles();
 	}
@@ -337,7 +389,7 @@ var Game = (function() {
 			var ship = ships[s];
 			if (ship.acc) {
 				for (var i = 0; i < 5; i++) {
-					var angle = ship.oa + Math.PI + (Math.PI / 8 * Math.random() - Math.PI / 16);
+					var angle = ship.pa + Math.PI + (Math.PI / 8 * Math.random() - Math.PI / 16);
 					var magnitude = .75 + .25 * Math.random();
 					particles.unshift({
 						t: now,

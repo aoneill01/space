@@ -32,7 +32,7 @@ function createGame() {
 	var maxSpeed = 50;
 	// Width and height of space
     var universeSize = 200;
-	// New ship identifier
+	// New object identifier
 	var nextId = 0;
 	// Center of space and location of sun
     var center = new Vector(universeSize / 2, universeSize / 2);
@@ -60,7 +60,8 @@ function createGame() {
                     pp: ship.pp.copy(),
                     v: vectorForAngle(ship.a, 7).iadd(ship.v),
 					l: 5 * updatesPerSecond * stepsPerUpdate, 
-					sid: ship.id
+					sid: ship.id,
+					id: nextId++
 				});
 				// Reset the shot counter
 				ship.sc = updatesPerSecond / 5;
@@ -85,7 +86,7 @@ function createGame() {
 		}
 		
 		// Notify clients of update
-		io.sockets.emit('up', { ships: ships, asteroids: asteroids, bullets: bullets });
+		emitUpdate();
 	}
 	
 	function updateStep() {
@@ -219,7 +220,6 @@ function createGame() {
 			oa: 0,  // old angle
             v: new Vector(-Math.sqrt(G / 50), 0), // velocity
 			acc: false, // accelerate
-			bullets: [],
 			turn: 0, // turn angle
 			pturn: null,
 			shoot: false, // shooting
@@ -256,8 +256,41 @@ function createGame() {
 			p: position,
 			pp: position.copy(),
 			v: vectorForAngle(angle + Math.PI / 2, Math.sqrt(G / radius)),
-			r: size
+			r: size, 
+			id: nextId++
 		});
+	}
+
+	function emitUpdate() {
+		var precision = 6;
+		var emitShips = [];
+		for (var i in ships) {
+			emitShips[i] = {
+				x: new Number(ships[i].p.x).toPrecision(precision),
+				y: new Number(ships[i].p.y).toPrecision(precision),
+				a: new Number(ships[i].a).toPrecision(precision),
+				acc: ships[i].acc,
+				id: ships[i].id
+			};
+		}
+		var emitBullets = [];
+		for (var i in bullets) {
+			emitBullets[i] = {
+				x: new Number(bullets[i].p.x).toPrecision(precision),
+				y: new Number(bullets[i].p.y).toPrecision(precision),
+				id: bullets[i].id
+			};
+		}
+		var emitAsteroids = [];
+		for (var i in asteroids) {
+			emitAsteroids[i] = {
+				x: new Number(asteroids[i].p.x).toPrecision(precision),
+				y: new Number(asteroids[i].p.y).toPrecision(precision),
+				r: new Number(asteroids[i].r).toPrecision(precision),
+				id: asteroids[i].id
+			};
+		}
+		io.sockets.volatile.emit('up', { ships: emitShips, asteroids: emitAsteroids, bullets: emitBullets });
 	}
 	
 	return {
