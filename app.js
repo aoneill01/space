@@ -29,7 +29,7 @@ function createGame() {
 	// Number of discrete physics calculations per update
 	var stepsPerUpdate = 4;
 	// Maximum speed for a ship
-	var maxSpeed = 50;
+	var maxSpeed = null;
 	// Width and height of space
     var universeSize = 200;
 	// New object identifier
@@ -50,14 +50,12 @@ function createGame() {
 			
 			// Record the previous angle and position
 			ship.oa = ship.a;
-			ship.pp.iset(ship.p);
 			ship.sc--;
 			
 			// Update bullets
 			if (ship.shoot && ship.sc <= 0) {
 				bullets.unshift({
                     p: ship.p.copy(),
-                    pp: ship.pp.copy(),
                     v: vectorForAngle(ship.a, 7).iadd(ship.v),
 					l: 5 * updatesPerSecond * stepsPerUpdate, 
 					sid: ship.id,
@@ -71,13 +69,11 @@ function createGame() {
 		// Record the previous position of bullets
 		for (var i in bullets) {
 			var bullet = bullets[i];
-			bullet.pp.iset(bullet.p);
 		}
 		
 		// Record the previous position of asteroids
 		for (var i in asteroids) {
 			var asteroid = asteroids[i];
-			asteroid.pp.iset(asteroid.p);
 		}
 		
 		// Perform the physics update
@@ -131,10 +127,10 @@ function createGame() {
 		object.p.iadd(object.v.mul(dt));
 		
 		// Wrap the object if needed
-		while (object.p.x < 0) { object.p.x += universeSize; object.pp.x += universeSize; }
-		while (object.p.x > universeSize) { object.p.x -= universeSize; object.pp.x -= universeSize; }
-		while (object.p.y < 0) { object.p.y += universeSize; object.pp.y += universeSize; }
-		while (object.p.y > universeSize) { object.p.y -= universeSize; object.pp.y -= universeSize; }
+		while (object.p.x < 0) { object.p.x += universeSize; }
+		while (object.p.x > universeSize) { object.p.x -= universeSize; }
+		while (object.p.y < 0) { object.p.y += universeSize; }
+		while (object.p.y > universeSize) { object.p.y -= universeSize; }
 	}
 	
 	function gravitationalAcceleration(a, b){
@@ -172,16 +168,21 @@ function createGame() {
 			}
             if (splitAsteroid) {
                 var asteroid = asteroids[splitAsteroid];
-                var v = vectorForAngle(Math.random()*2*Math.PI, Math.random());
-                asteroids.push({
-                    p: asteroid.p.copy(),
-                    pp: asteroid.pp.copy(),
-                    v: asteroid.v.add(v),
-                    r: asteroid.r * (2/3)
-                });
-                v = vectorForAngle(Math.random()*2*Math.PI, Math.random());
-                asteroid.v = asteroid.v.add(v);
-                asteroid.r = asteroid.r * (2/3);
+				if (asteroid.r < .4) {
+					asteroids.splice(splitAsteroid, 1);
+				}
+				else {
+					var v = vectorForAngle(Math.random()*2*Math.PI, 3 * Math.random());
+					asteroids.push({
+						p: asteroid.p.copy(),
+						v: asteroid.v.add(v),
+						r: asteroid.r * (2/3), 
+						id: nextId++
+					});
+					v = vectorForAngle(Math.random()*2*Math.PI, Math.random());
+					asteroid.v = asteroid.v.add(v);
+					asteroid.r = asteroid.r * (2/3);
+				}
             }
 		}
 		
@@ -215,9 +216,7 @@ function createGame() {
 	function join() {
 		var ship = { 
             p: new Vector(100, 50), // position
-            pp: new Vector(100, 50), // previous position
 			a: 0,   // angle (radians)
-			oa: 0,  // old angle
             v: new Vector(-Math.sqrt(G / 50), 0), // velocity
 			acc: false, // accelerate
 			turn: 0, // turn angle
@@ -238,9 +237,7 @@ function createGame() {
 		var angle = Math.random() * Math.PI * 2;
 		var position = center.add(vectorForAngle(angle, 60));
 		ship.p = position;
-		ship.pp = position.copy();
 		ship.a = angle + Math.PI;
-		ship.oa = ship.a;
 		ship.v = vectorForAngle(angle + Math.PI / 2, Math.sqrt(G / 60))
 	}
 	
@@ -250,11 +247,10 @@ function createGame() {
 	function addAsteroid() {
 		var radius = Math.random() * 10 + 45;
 		var angle = Math.random() * Math.PI * 2;
-		var size = Math.random() * .5 + .25;
+		var size = Math.random() * 1 + .25;
 		var position = center.add(vectorForAngle(angle, radius));
 		asteroids.push({
 			p: position,
-			pp: position.copy(),
 			v: vectorForAngle(angle + Math.PI / 2, Math.sqrt(G / radius)),
 			r: size, 
 			id: nextId++
