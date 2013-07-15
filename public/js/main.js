@@ -142,6 +142,7 @@ var Game = (function() {
         context.closePath();
 		context.stroke();
 		
+		context.globalCompositeOperation = 'lighter';
 		for (var i in particles) {
 			if (particles[i].ship != ship.id) continue;
             var elapsed = now - particles[i].t;
@@ -154,8 +155,11 @@ var Game = (function() {
             var a = .5 - .5 * percentComplete;
             translated = translatedPoint(particlePoint, mainShipPosition);
 			
-			context.fillStyle = 'hsla(' + h + ', 100%, ' + l + '%, ' + a + ')';
-            context.beginPath();
+			context.beginPath();
+			var rad = context.createRadialGradient(factor * translated.x, factor * translated.y, 1, factor * translated.x, factor * translated.y, factor * radius);
+			rad.addColorStop(0, 'hsla(' + h + ', 100%, ' + l + '%, ' + a + ')');
+			rad.addColorStop(1, 'hsla(' + h + ', 100%, ' + l + '%, 0)');
+			context.fillStyle = rad;
             context.arc(factor * translated.x, factor * translated.y, factor * radius, 0, 2 * Math.PI, true);
             context.fill();
 		}
@@ -184,7 +188,7 @@ var Game = (function() {
 			context.beginPath();
 			
 			for (var i = 0; i < 9; i++) {
-				var point = angularPoint(translated, rotation + 2 * Math.PI * (i / 9) + (Math.PI / 5) * random(a, 2 * i), asteroid.r + (asteroid.r / 5) * random(a, 2 * i + 1) - asteroid.r / 10);
+				var point = angularPoint(translated, rotation + 2 * Math.PI * (i / 9) + (Math.PI / 5) * random(a, 2 * i), asteroid.r + (asteroid.r / 3) * random(a, 2 * i + 1) - asteroid.r / 6);
 				if (i == 0) {
 					context.moveTo(factor * point.x, factor * point.y);
 				}
@@ -237,12 +241,18 @@ var Game = (function() {
     
     function drawSun(mainShipPosition, factor) {
         context.save();
-        context.fillStyle = 'white';
-        var translated = translatedPoint(centerPosition, mainShipPosition);
-        context.beginPath();
-        context.arc(factor * translated.x, factor * translated.y, factor * 10, 0, 2 * Math.PI, true);
-        context.fill();
-        context.restore();
+		
+		var translated = translatedPoint(centerPosition, mainShipPosition);
+        
+		context.beginPath();
+		var rad = context.createRadialGradient(factor * translated.x, factor * translated.y, factor * 10, factor * translated.x, factor * translated.y, factor * 10.5);
+		rad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+		rad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+		context.fillStyle = rad;
+		context.arc(factor * translated.x, factor * translated.y, factor * 10.5, 0, 2 * Math.PI, true);
+		context.fill();
+		
+		context.restore();
     }
 	
 	function drawMap(factor) {
@@ -371,7 +381,7 @@ var Game = (function() {
 						t: now,
 						a: angle,
 						v: magnitude,
-						r: .1 * Math.random(),
+						r: .09 + .01 * Math.random(),
 						ship: ship.id
 					});
 				}
