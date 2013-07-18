@@ -343,6 +343,7 @@ var Game = (function() {
 		for (var i in data.ships) {
 			var ship = data.ships[i];
 			ships[ship.id] = {
+				id: ship.id,
 				x: new Number(ship.x),
 				y: new Number(ship.y),
 				a: new Number(ship.a),
