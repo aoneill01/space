@@ -18,6 +18,7 @@ var Game = (function() {
 	var id;
 	var randomList = [];
 	var zoom = 2;
+	var shipImg = new Image();
 	
 	/**
 	Initializes the game.
@@ -34,6 +35,7 @@ var Game = (function() {
 		for (var i = 0; i < 101; i++) {
 			randomList[i] = Math.random();
 		}
+		shipImg.src = "../img/ship.png";
 	}
 	
 	/**
@@ -116,11 +118,6 @@ var Game = (function() {
 	
 	function drawShip(mainShipPosition, ship, previousShip, interpolation, factor, now)
 	{
-        context.save();
-        context.strokeStyle = 'white';
-        context.fillStyle = 'black';
-        context.lineWidth = 1;
-        
         var previousPosition = new Vector(previousShip.x, previousShip.y);
         var currentPosition = new Vector(ship.x, ship.y);
         var shipPosition = previousPosition.add(currentPosition.sub(previousPosition).mul(interpolation));
@@ -128,6 +125,19 @@ var Game = (function() {
         
         var translated = translatedPoint(shipPosition, mainShipPosition);
 		
+		context.save();
+		context.translate(factor * translated.x, factor * translated.y);
+		context.scale(.4 * factor / 64, .4 * factor / 64);
+		context.rotate(-a - Math.PI / 2);
+		context.drawImage(shipImg, -64, -64);
+		context.restore();
+				
+		context.save();
+		/*
+        context.strokeStyle = 'white';
+        context.fillStyle = 'black';
+        context.lineWidth = 1;
+
 		context.beginPath();
 		var point = angularPoint(translated, a, .4);
 		context.moveTo(factor * point.x, factor * point.y);
@@ -141,13 +151,15 @@ var Game = (function() {
         context.fill();
         context.closePath();
 		context.stroke();
+		*/
+		var basePosition = angularPoint(shipPosition, a, -.4);
 		
 		context.globalCompositeOperation = 'lighter';
 		for (var i in particles) {
 			if (particles[i].ship != ship.id) continue;
             var elapsed = now - particles[i].t;
 			var percentComplete = elapsed / 1000;
-			var particlePoint = angularPoint(shipPosition, particles[i].a, .1 + percentComplete * particles[i].v);
+			var particlePoint = angularPoint(basePosition, particles[i].a, percentComplete * particles[i].v);
             var radius = (1 - percentComplete) * particles[i].r;
             if (radius <= 0) radius = .01;
             var h = Math.floor(150 + 300 * percentComplete) % 360;
@@ -165,6 +177,8 @@ var Game = (function() {
 		}
         
 		context.restore();
+		
+		
 	}
 	
 	function drawAsteroids(mainShipPosition, interpolation, factor, now)
