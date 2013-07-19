@@ -27,6 +27,7 @@ GameObject.nextId = 0;
 GameObject.prototype.updatePosition	= function (additionalAcceleration) {
 	var acc = new Vector(0, 0);
 	for (var i in planets) {
+        if (this == planets[i]) continue;
 		acc.iadd(planets[i].gravitationalAcceleration(this));
 	}
 	if (additionalAcceleration) acc.iadd(additionalAcceleration);
@@ -211,7 +212,11 @@ function updateStep() {
 	// Update the asteroids
 	for (var i in asteroids) {
 		asteroids[i].updatePosition(new Vector(0, 0));
-	}	
+	}
+    
+    for (var i = 0; i < planets.length; i++) {
+        planets[i].updatePosition(new Vector(0, 0));
+    }
 }
 
 function checkForCollisions() {
@@ -295,11 +300,19 @@ function join() {
 Adds a randomly generated asteroid in circular orbit.
 **/
 function addAsteroid() {
-	var radius = Math.random() * 10 + 45;
+	var radius = Math.random() * 10 + 35;
 	var angle = Math.random() * Math.PI * 2;
 	var size = Math.random() * 1 + .25;
 	var position = planets[0].position.add(vectorForAngle(angle, radius));
 	asteroids.push(new Asteroid(position, vectorForAngle(angle + Math.PI / 2, Math.sqrt(g * planets[0].mass / radius)), size));
+}
+
+function addPlanet() {
+	var radius = Math.random() * 10 + 70;
+	var angle = Math.random() * Math.PI * 2;
+	var size = Math.random() * 4 + 1;
+	var position = planets[0].position.add(vectorForAngle(angle, radius));
+	planets.push(new Planet(position, vectorForAngle(angle + Math.PI / 2, Math.sqrt(g * planets[0].mass / radius)), size));
 }
 
 function emitUpdate() {
@@ -344,6 +357,10 @@ io.sockets.on('connection', function (socket) {
 
 for (var i = 0; i < 100; i++) {
 	addAsteroid();
+}
+
+for (var i = 0; i < 1; i++) {
+    addPlanet();
 }
 
 setInterval(update, 1000 / updatesPerSecond);

@@ -8,6 +8,8 @@ var Game = (function() {
 	var previousAsteroids = [];
 	var bullets = [];
 	var previousBullets = [];
+    var planets = [];
+    var previousPlanets = [];
 	var lastUpdate;
 	var start = new Date().getTime();
 	var particles = [];
@@ -98,7 +100,7 @@ var Game = (function() {
 
 			drawBullets(shipPosition, interpolation, factor);
             
-            drawSun(shipPosition, factor);
+            drawPlanets(shipPosition, interpolation, factor);
             
             drawAsteroids(shipPosition, interpolation, factor, now);			
             
@@ -253,17 +255,28 @@ var Game = (function() {
         context.restore();
     }
     
-    function drawSun(mainShipPosition, factor) {
+    function drawPlanets(mainShipPosition, interpolation, factor) {
+        for (var i in planets) {
+			if (isVisible(planets[i], mainShipPosition)) {
+				drawPlanet(mainShipPosition, planets[i], previousPlanets[i] || {}, interpolation, factor);
+			}
+		}
+    }
+    
+    function drawPlanet(mainShipPosition, planet, previousPlanet, interpolation, factor) {
         context.save();
 		
-		var translated = translatedPoint(centerPosition, mainShipPosition);
+        var previousPosition = new Vector(previousPlanet.x, previousPlanet.y);
+        var currentPosition = new Vector(planet.x, planet.y);
+        var planetPosition = previousPosition.add(currentPosition.sub(previousPosition).mul(interpolation));
+		var translated = translatedPoint(planetPosition, mainShipPosition);
         
 		context.beginPath();
-		var rad = context.createRadialGradient(factor * translated.x, factor * translated.y, factor * 10, factor * translated.x, factor * translated.y, factor * 10.5);
+		var rad = context.createRadialGradient(factor * translated.x, factor * translated.y, factor * planet.r, factor * translated.x, factor * translated.y, factor * planet.r * 1.05);
 		rad.addColorStop(0, 'rgba(255, 255, 255, 1)');
 		rad.addColorStop(1, 'rgba(255, 255, 255, 0)');
 		context.fillStyle = rad;
-		context.arc(factor * translated.x, factor * translated.y, factor * 10.5, 0, 2 * Math.PI, true);
+		context.arc(factor * translated.x, factor * translated.y, factor * planet.r * 1.05, 0, 2 * Math.PI, true);
 		context.fill();
 		
 		context.restore();
@@ -280,13 +293,16 @@ var Game = (function() {
 		context.fill();
 		context.stroke();
 		
-		context.fillStyle = 'white';
-		context.beginPath();
-        context.arc(factor * (14 + (2 * ((universeSize / 2) / universeSize))), 
-			factor * (7 + (2 * ((universeSize / 2) / universeSize))), 
-			factor * (2 * (10 / universeSize)), 0, 2 * Math.PI, true);
-        context.fill();
-		
+        for (var i in planets) {
+            var planet = planets[i];
+            context.fillStyle = 'white';
+            context.beginPath();
+            context.arc(factor * (14 + (2 * (planet.x / universeSize))), 
+                factor * (7 + (2 * (planet.y / universeSize))), 
+                factor * (2 * (planet.r / universeSize)), 0, 2 * Math.PI, true);
+            context.fill();
+		}
+        
 		for (var i in asteroids) {
 			var asteroid = asteroids[i];
 			context.fillStyle = 'blue';
@@ -309,8 +325,8 @@ var Game = (function() {
 	}
 	
 	function isVisible(object, mainShipPosition) {
-		return Math.abs(object.x - mainShipPosition.x) < 17 && 
-			Math.abs(object.y - mainShipPosition.y) < 10;
+		return Math.abs(object.x - mainShipPosition.x) < 27 && 
+			Math.abs(object.y - mainShipPosition.y) < 20;
 	}
 	
 	function random(seed, index) {
@@ -369,6 +385,17 @@ var Game = (function() {
 			bullets[bullet.id] = {
 				x: new Number(bullet.x),
 				y: new Number(bullet.y)
+			}
+		}
+        
+        previousPlanets = planets;
+		planets = [];
+		for (var i in data.planets) {
+			var planet = data.planets[i];
+			planets[planet.id] = {
+				x: new Number(planet.x),
+				y: new Number(planet.y),
+                r: new Number(planet.r)
 			}
 		}
 		
