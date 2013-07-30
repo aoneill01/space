@@ -8,6 +8,8 @@ var Game = (function() {
 	var previousAsteroids = [];
 	var bullets = [];
 	var previousBullets = [];
+	var debris = [];
+	var previousDebris = [];
     var planets = [];
     var previousPlanets = [];
 	var lastUpdate;
@@ -99,6 +101,8 @@ var Game = (function() {
             drawStars(shipPosition, factor);
 
 			drawBullets(shipPosition, interpolation, factor);
+			
+			drawDebris(shipPosition, interpolation, factor);
             
             drawPlanets(shipPosition, interpolation, factor);
             
@@ -112,7 +116,7 @@ var Game = (function() {
 	
 	function drawShips(mainShipPosition, interpolation, factor, now) {
 		for (var s in ships) {
-			if (isVisible(ships[s], mainShipPosition)) {
+			if (isVisible(ships[s], mainShipPosition) && ships[s].alive) {
 				drawShip(mainShipPosition, ships[s], previousShips[s] || {}, interpolation, factor, now);
 			}
 		}
@@ -135,25 +139,7 @@ var Game = (function() {
 		context.restore();
 				
 		context.save();
-		/*
-        context.strokeStyle = 'white';
-        context.fillStyle = 'black';
-        context.lineWidth = 1;
-
-		context.beginPath();
-		var point = angularPoint(translated, a, .4);
-		context.moveTo(factor * point.x, factor * point.y);
-		point = angularPoint(translated, a - 2 / 3 * Math.PI, .2);
-		context.lineTo(factor * point.x, factor * point.y);
-		point = angularPoint(translated, a, .1);
-		context.lineTo(factor * point.x, factor * point.y);
-		point = angularPoint(translated, a + 2 / 3 * Math.PI, .2);
-		context.lineTo(factor * point.x, factor * point.y);
 		
-        context.fill();
-        context.closePath();
-		context.stroke();
-		*/
 		var basePosition = angularPoint(shipPosition, a, -.4);
 		
 		context.globalCompositeOperation = 'lighter';
@@ -237,6 +223,25 @@ var Game = (function() {
 		
 		context.restore();
 	}
+	
+	function drawDebris(mainShipPosition, interpolation, factor) {
+		context.save();
+        
+		for (var i in debris) {
+			var d = debris[i];
+			var previousD = previousDebris[i] || {};
+			if (!isVisible(d, mainShipPosition)) continue;
+			var previousPosition = new Vector(previousD.x, previousD.y);
+			var currentPosition = new Vector(d.x, d.y);
+			var position = previousPosition.add(currentPosition.sub(previousPosition).mul(interpolation));
+			var translated = translatedPoint(position, mainShipPosition);
+			var percent = previousD.percent + interpolation * (d.percent - previousD.percent);
+			context.fillStyle = 'hsla(0, 100%, 100%, ' + percent + ')';
+			context.fillRect(factor * translated.x, factor * translated.y, Math.ceil(.2 * factor), Math.ceil(.2 * factor));
+		}
+		
+		context.restore();
+	}
     
     function drawStars(mainShipPosition, factor) {
         context.save();
@@ -314,6 +319,7 @@ var Game = (function() {
 		
 		for (var i in ships) {
 			var ship = ships[i];
+			if (!ship.alive) continue;
 			context.fillStyle = ship.id == id ? 'white' : 'red';
 			context.fillRect(factor * (14 + (2 * (ship.x / universeSize))), 
 				factor * (7 + (2 * (ship.y / universeSize))), 
@@ -363,7 +369,8 @@ var Game = (function() {
 				x: new Number(ship.x),
 				y: new Number(ship.y),
 				a: new Number(ship.a),
-				acc: ship.acc
+				acc: ship.acc,
+				alive: ship.l
 			};
 		}
 		
@@ -388,6 +395,17 @@ var Game = (function() {
 			}
 		}
         
+		previousDebris = debris;
+		debris = [];
+		for (var i in data.debris) {
+			var d = data.debris[i];
+			debris[d.id] = {
+				x: new Number(d.x),
+				y: new Number(d.y),
+				percent: new Number(d.l)
+			}
+		}
+		
         previousPlanets = planets;
 		planets = [];
 		for (var i in data.planets) {

@@ -61,6 +61,8 @@ function Ship(position, velocity) {
 	this.prevTurn = null;
 	this.shooting = false; // shooting
 	this.shootCountdown = 0; // shoot countdown
+	this.respawnCountdown = 0;
+	this.alive = true;
 }
 
 Ship.prototype = new GameObject();
@@ -71,11 +73,13 @@ Ship.prototype.toDto = function () {
 		y: new Number(this.position.y).toPrecision(this.precision),
 		a: new Number(this.angle).toPrecision(this.precision),
 		acc: this.accelerating,
-		id: this.id
+		id: this.id,
+		l: this.alive
 	};
 }
 
 Ship.prototype.respawn = function () {
+	this.alive = true;
 	var angle = Math.random() * Math.PI * 2;
 	this.position = planets[0].position.add(vectorForAngle(angle, 60));
 	this.angle = angle + Math.PI;
@@ -83,10 +87,35 @@ Ship.prototype.respawn = function () {
 }
 
 Ship.prototype.update = function () {
-	this.angle += this.prevTurn == null ? this.turn : this.prevTurn;
-	this.prevTurn = null;
+	this.shootCountdown--;
+	this.respawnCountdown--;
 	
-	this.updatePosition(this.accelerating ? vectorForAngle(this.angle, 5) : new Vector(0, 0));
+	// Update bullets
+	if (this.shooting && this.alive && this.shootCountdown <= 0) {
+		bullets.unshift(new Bullet(this.position.copy(), vectorForAngle(this.angle, 10).iadd(this.velocity), 5 * updatesPerSecond * stepsPerUpdate, this));
+		// Reset the shot counter
+		this.shootCountdown = updatesPerSecond * stepsPerUpdate / 2;
+	}
+	
+	if (!this.alive && this.respawnCountdown <= 0) {
+		this.respawn();
+	}
+		
+	if (this.alive) {
+		this.angle += this.prevTurn == null ? this.turn : this.prevTurn;
+		this.prevTurn = null;
+	}
+	
+	this.updatePosition(this.accelerating && this.alive ? vectorForAngle(this.angle, 5) : new Vector(0, 0));
+}
+
+Ship.prototype.explode = function () {
+	if (!this.alive) return;
+	this.alive = false;
+	this.respawnCountdown = updatesPerSecond * stepsPerUpdate * 3;
+	for (var i = 0; i < 30; i++) {
+		debris.unshift(new Debris(this.position.copy(), vectorForAngle(Math.random() * Math.PI * 2, Math.random() * 1.5).iadd(this.velocity), 15 * updatesPerSecond * stepsPerUpdate));
+	}
 }
 	
 function Bullet(position, velocity, life, ship) {
@@ -143,6 +172,23 @@ Planet.prototype.gravitationalAcceleration = function (o){
 	return normal.mul(g * this.mass / Math.pow(length, 2));
 };
 
+function Debris(position, velocity, life) {
+	GameObject.call(this, position, velocity, 0);
+	this.life = life;
+	this.originalLife = life;
+}
+
+Debris.prototype = new GameObject();
+Debris.prototype.constructor = Debris;
+Debris.prototype.toDto = function () {
+	return {
+		x: new Number(this.position.x).toPrecision(this.precision),
+		y: new Number(this.position.y).toPrecision(this.precision),
+		id: this.id,
+		l: new Number(this.life / this.originalLife).toPrecision(this.precision)
+	};
+}
+
 // Width and height of space
 var universeSize = 200;
 // Array of all the ships
@@ -152,6 +198,7 @@ var asteroids = [];
 // Array of all the bullets
 var bullets = [];
 var planets = [new Planet(new Vector(universeSize / 2, universeSize / 2), new Vector(0, 0), 10)];
+var debris = [];
 var updatesPerSecond = 10;
 // Number of discrete physics calculations per update
 var stepsPerUpdate = 4;
@@ -168,15 +215,6 @@ Periodic update of all objects.
 function update() {
 	for (var s in ships) {
 		var ship = ships[s];
-		
-		ship.shootCountdown--;
-		
-		// Update bullets
-		if (ship.shooting && ship.shootCountdown <= 0) {
-			bullets.unshift(new Bullet(ship.position.copy(), vectorForAngle(ship.angle, 7).iadd(ship.velocity), 5 * updatesPerSecond * stepsPerUpdate, ship));
-			// Reset the shot counter
-			ship.shootCountdown = updatesPerSecond / 5;
-		}
 	}
 	
 	// Perform the physics update
@@ -209,6 +247,18 @@ function updateStep() {
 		bullet.updatePosition(new Vector(0, 0));
 	}
 	
+	// Update debris
+	for (var i in debris) {
+		var d = debris[i];
+		
+		if (d.life-- <= 0) {
+			debris.splice(i, debris.length - i);
+			break;
+		}
+		
+		d.updatePosition(new Vector(0, 0));
+	}
+	
 	// Update the asteroids
 	for (var i in asteroids) {
 		asteroids[i].updatePosition(new Vector(0, 0));
@@ -236,7 +286,7 @@ function checkForCollisions() {
 			var ship = ships[j];
 			if (bullet.ship != ship && collision(bullet, ship)) {
 				removeBullet = true;
-				ship.respawn();
+				ship.explode();
 			}
 		}
 		for (var j in planets) {
@@ -269,12 +319,12 @@ function checkForCollisions() {
 		for (var j in asteroids) {
 			var asteroid = asteroids[j];
 			if (collision(ship, asteroid)) {
-				ship.respawn();
+				ship.explode();
 			}
 		}
 		for (var j in planets) {
 			if (collision(ship, planets[j])) {
-				ship.respawn()
+				ship.explode()
 			}
 		}
 	}
@@ -325,6 +375,10 @@ function emitUpdate() {
 	for (var i in bullets) {
 		emitBullets[i] = bullets[i].toDto();
 	}
+	var emitDebris = [];
+	for (var i in debris) {
+		emitDebris[i] = debris[i].toDto();
+	}
 	var emitAsteroids = [];
 	for (var i in asteroids) {
 		emitAsteroids[i] = asteroids[i].toDto();
@@ -333,7 +387,7 @@ function emitUpdate() {
 	for (var i in planets) {
 		emitPlanets[i] = planets[i].toDto();
 	}
-	io.sockets.volatile.emit('up', { ships: emitShips, asteroids: emitAsteroids, bullets: emitBullets, planets: emitPlanets });
+	io.sockets.volatile.emit('up', { ships: emitShips, asteroids: emitAsteroids, bullets: emitBullets, debris: emitDebris, planets: emitPlanets });
 }
 
 
@@ -359,7 +413,7 @@ for (var i = 0; i < 100; i++) {
 	addAsteroid();
 }
 
-for (var i = 0; i < 1; i++) {
+for (var i = 0; i < 2; i++) {
     addPlanet();
 }
 
